@@ -80,16 +80,34 @@ const demos = [
     tags: ['React 19', 'Animations', 'UX'],
   },
   {
-    title: 'Activity Indicators',
-    description: 'Loading states, spinners, progress bars, and skeleton loaders',
+    title: '<Activity /> Component',
+    description: 'React 19.2 Activity component for controlled rendering with visible/hidden modes',
     href: '/activity',
-    tags: ['React 19', 'UX', 'Loading States'],
+    tags: ['React 19.2', 'Performance', 'State Management'],
   },
   {
     title: 'Suspense Improvements',
     description: 'Compare React 18 vs React 19 Suspense behavior with immediate fallbacks and pre-warming',
     href: '/suspense-improvements',
     tags: ['React 19', 'Suspense', 'Performance', 'UX'],
+  },
+  {
+    title: 'captureOwnerStack()',
+    description: 'Capture component ownership stack for debugging and error tracking',
+    href: '/capture-owner-stack',
+    tags: ['React 19', 'Debugging', 'DevTools'],
+  },
+  {
+    title: 'useEffectEvent Hook',
+    description: 'Extract non-reactive logic from Effects to read latest values without re-triggering',
+    href: '/use-effect-event',
+    tags: ['React 19', 'Hooks', 'Experimental'],
+  },
+  {
+    title: 'Partial Pre-rendering',
+    description: 'Pre-render static parts and resume dynamic parts for optimal performance',
+    href: '/partial-pre-rendering',
+    tags: ['React 19.2', 'SSR', 'Performance', 'CDN'],
   },
 ]
 
@@ -142,7 +160,8 @@ export default function Home() {
           <li><strong>Context as Provider:</strong> Cleaner context API</li>
           <li><strong>React Compiler:</strong> Automatic memoization and optimization</li>
           <li><strong>View Transitions:</strong> Smooth animations with native browser API</li>
-          <li><strong>Activity Indicators:</strong> Loading states and progress feedback</li>
+          <li><strong>Activity Component:</strong> Controlled rendering with visible/hidden modes for better performance</li>
+          <li><strong>Partial Pre-rendering:</strong> Pre-render static parts and resume dynamic parts for optimal SSR performance</li>
         </ul>
         <h3 style={{ marginTop: '2rem' }}>Getting Started:</h3>
         <pre><code>{`npm install

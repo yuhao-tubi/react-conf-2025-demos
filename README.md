@@ -18,7 +18,11 @@ A comprehensive collection of interactive demos showcasing the latest features i
 10. **Async Transitions** - useTransition with async function support
 11. **Error Handling** - Enhanced error boundaries and error handling
 12. **View Transitions** - Smooth animations with the View Transitions API
-13. **Activity Indicators** - Loading states, spinners, and progress bars
+13. **&lt;Activity /&gt; Component** - Controlled rendering with visible/hidden modes (React 19.2)
+14. **Suspense Improvements** - React 19 Suspense enhancements with immediate fallbacks
+15. **captureOwnerStack()** - Capture component ownership stack for debugging
+16. **useEffectEvent** - Extract non-reactive logic from Effects (Experimental)
+17. **Partial Pre-rendering** - Pre-render static parts and resume dynamic parts (React 19.2)
 
 ### React Compiler v1.0
 
@@ -67,7 +71,11 @@ Then visit [http://localhost:3000](http://localhost:3000) to explore the demos.
 │   ├── async-transitions/      # Async transitions demo
 │   ├── error-handling/         # Error handling demo
 │   ├── view-transitions/       # View Transitions API demo
-│   └── activity/               # Activity indicators demo
+│   ├── activity/               # Activity component demo (React 19.2)
+│   ├── suspense-improvements/  # Suspense improvements demo
+│   ├── capture-owner-stack/    # captureOwnerStack() demo
+│   ├── use-effect-event/       # useEffectEvent hook demo
+│   └── partial-pre-rendering/  # Partial Pre-rendering demo (React 19.2)
 ├── next.config.js              # Next.js config with React Compiler
 ├── tsconfig.json               # TypeScript configuration
 └── package.json                # Dependencies
@@ -114,8 +122,20 @@ Error boundaries with recovery mechanisms and best practices.
 ### 13. View Transitions
 Smooth animations between UI states using the native View Transitions API.
 
-### 14. Activity Indicators
-Comprehensive loading states including spinners, progress bars, skeleton loaders, and more.
+### 14. &lt;Activity /&gt; Component
+React 19.2's new Activity component for controlled rendering with visible/hidden modes. Demonstrates state preservation, pre-rendering, and background loading for better performance and UX.
+
+### 15. Suspense Improvements
+Compare React 18 vs React 19 Suspense behavior with immediate fallbacks, pre-warming, and better sibling handling.
+
+### 16. captureOwnerStack()
+Capture the component ownership stack for improved debugging, error tracking, and understanding component hierarchies.
+
+### 17. useEffectEvent (Experimental)
+Extract non-reactive logic from Effects to read the latest props and state without causing the Effect to re-run. Demonstrates analytics tracking, notifications, and event handlers in Effects.
+
+### 18. Partial Pre-rendering
+React 19.2 feature to pre-render static parts of your app at build time and resume rendering dynamic parts at runtime. Demonstrates the three-phase flow, benefits for Core Web Vitals, and real-world use cases for optimal SSR performance.
 
 ## ⚙️ React Compiler Configuration
 

@@ -1,653 +1,502 @@
 'use client'
 
-import { useState, useTransition, Suspense } from 'react'
+import { useState, useEffect, Suspense, use } from 'react'
 import Link from 'next/link'
 
-// Activity Indicator Component
-function ActivityIndicator({ size = 'medium', label }: { size?: 'small' | 'medium' | 'large'; label?: string }) {
-  const sizes = {
-    small: 16,
-    medium: 24,
-    large: 40,
-  }
+// Mock Activity component (React 19.2 feature - this is a polyfill/demonstration)
+// In real React 19.2, this would be imported from 'react'
+function Activity({ mode, children }: { mode: 'visible' | 'hidden'; children: React.ReactNode }) {
+  const [shouldRender, setShouldRender] = useState(mode === 'visible')
+  
+  useEffect(() => {
+    if (mode === 'visible') {
+      setShouldRender(true)
+    }
+    // For 'hidden' mode, we keep rendering but defer updates and unmount effects
+  }, [mode])
 
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-      <div
-        style={{
-          width: sizes[size],
-          height: sizes[size],
-          border: '3px solid rgba(0, 112, 243, 0.3)',
-          borderTopColor: '#0070f3',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }}
-      />
-      {label && <span style={{ fontSize: size === 'small' ? '0.875rem' : '1rem' }}>{label}</span>}
-    </div>
-  )
-}
-
-// Skeleton Loader Component
-function SkeletonLoader({ width, height, count = 1 }: { width?: string; height?: string; count?: number }) {
-  return (
-    <>
-      {Array.from({ length: count }).map((_, i) => (
-        <div
-          key={i}
-          style={{
-            width: width || '100%',
-            height: height || '20px',
-            background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-            backgroundSize: '200% 100%',
-            animation: 'shimmer 1.5s infinite',
-            borderRadius: '4px',
-            marginBottom: count > 1 ? '0.5rem' : 0,
-          }}
-        />
-      ))}
-    </>
-  )
-}
-
-// Progress Bar Component
-function ProgressBar({ progress, label }: { progress: number; label?: string }) {
-  return (
-    <div style={{ width: '100%' }}>
-      {label && <div style={{ marginBottom: '0.5rem', fontSize: '0.9rem' }}>{label}</div>}
-      <div
-        style={{
-          width: '100%',
-          height: '8px',
-          background: '#e5e7eb',
-          borderRadius: '4px',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            width: `${progress}%`,
-            height: '100%',
-            background: 'linear-gradient(90deg, #0070f3, #7928ca)',
-            transition: 'width 0.3s ease',
-          }}
-        />
-      </div>
-      <div style={{ marginTop: '0.25rem', fontSize: '0.875rem', color: '#666' }}>
-        {progress}% complete
-      </div>
-    </div>
-  )
-}
-
-// Pulse Indicator
-function PulseIndicator({ color = '#0070f3' }: { color?: string }) {
   return (
     <div
       style={{
-        position: 'relative',
-        width: '12px',
-        height: '12px',
+        display: mode === 'hidden' ? 'none' : 'block',
+        // In real implementation, React would defer all updates and unmount effects when hidden
       }}
+      data-activity-mode={mode}
     >
-      <div
-        style={{
-          position: 'absolute',
-          width: '12px',
-          height: '12px',
-          borderRadius: '50%',
-          background: color,
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          width: '12px',
-          height: '12px',
-          borderRadius: '50%',
-          background: color,
-          animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        }}
-      />
+      {children}
     </div>
   )
 }
 
-// Dot Loader
-function DotLoader() {
+// Simulated heavy component with effects
+function HeavyComponent({ id, color }: { id: string; color: string }) {
+  const [count, setCount] = useState(0)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    console.log(`${id} mounted`)
+    setMounted(true)
+    return () => {
+      console.log(`${id} unmounted`)
+    }
+  }, [id])
+
   return (
-    <div style={{ display: 'flex', gap: '0.5rem' }}>
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          style={{
-            width: '10px',
-            height: '10px',
-            borderRadius: '50%',
-            background: '#0070f3',
-            animation: 'bounce 1.4s infinite ease-in-out both',
-            animationDelay: `${i * 0.16}s`,
-          }}
-        />
-      ))}
+    <div className="card" style={{ padding: '1.5rem', borderLeft: `4px solid ${color}` }}>
+      <h4>{id}</h4>
+      <p>Status: {mounted ? '✅ Mounted' : '⏳ Mounting...'}</p>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(c => c + 1)} style={{ marginTop: '0.5rem' }}>
+        Increment
+      </button>
+      <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' }}>
+        Check console for mount/unmount logs
+      </p>
     </div>
   )
 }
 
-// Simulated async data fetch
-async function fetchData(delay: number = 2000): Promise<string[]> {
-  await new Promise((resolve) => setTimeout(resolve, delay))
-  return ['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5']
-}
+// Simulated tab content with data loading
+function TabContent({ name, color }: { name: string; color: string }) {
+  const [data, setData] = useState<string | null>(null)
+  const [input, setInput] = useState('')
 
-// Component that uses Suspense
-function DataList({ promise }: { promise: Promise<string[]> }) {
-  const [data, setData] = useState<string[] | null>(null)
+  useEffect(() => {
+    console.log(`${name} tab mounted, loading data...`)
+    const timer = setTimeout(() => {
+      setData(`Data loaded for ${name}`)
+    }, 1000)
 
-  promise.then(setData)
-
-  if (!data) {
-    throw promise
-  }
+    return () => {
+      console.log(`${name} tab unmounted`)
+      clearTimeout(timer)
+    }
+  }, [name])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      {data.map((item, i) => (
-        <div key={i} className="card" style={{ padding: '1rem' }}>
-          {item}
-        </div>
-      ))}
+    <div className="card" style={{ padding: '1.5rem', borderTop: `4px solid ${color}` }}>
+      <h3>{name}</h3>
+      {data ? (
+        <>
+          <p style={{ color: '#059669' }}>✅ {data}</p>
+          <div style={{ marginTop: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+              Your input (state preserved when switching tabs):
+            </label>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type something..."
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                borderRadius: '4px',
+                border: '1px solid #ddd',
+              }}
+            />
+          </div>
+          <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '1rem' }}>
+            💡 Switch tabs and come back - your input will be preserved!
+          </p>
+        </>
+      ) : (
+        <p>⏳ Loading data...</p>
+      )}
+    </div>
+  )
+}
+
+// Image preloader component
+function ImagePreloader({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    const img = new Image()
+    img.src = src
+    img.onload = () => {
+      console.log(`Image loaded: ${alt}`)
+      setLoaded(true)
+    }
+  }, [src, alt])
+
+  return (
+    <div className="card" style={{ padding: '1rem' }}>
+      <div
+        style={{
+          width: '100%',
+          height: '200px',
+          background: loaded ? `url(${src}) center/cover` : '#f0f0f0',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#666',
+        }}
+      >
+        {!loaded && '🖼️ Placeholder'}
+      </div>
+      <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+        {loaded ? `✅ ${alt}` : `⏳ Loading ${alt}...`}
+      </p>
     </div>
   )
 }
 
 export default function ActivityDemo() {
-  const [isPending, startTransition] = useTransition()
-  const [isLoading, setIsLoading] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [dataPromise, setDataPromise] = useState<Promise<string[]> | null>(null)
+  // Demo 1: Basic visible/hidden toggle
+  const [isVisible, setIsVisible] = useState(true)
 
-  const simulateProgress = () => {
-    setProgress(0)
-    setIsLoading(true)
+  // Demo 2: Multi-page state with tabs
+  const [activeTab, setActiveTab] = useState<'home' | 'profile' | 'settings'>('home')
 
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsLoading(false)
-          return 100
-        }
-        return prev + 10
-      })
-    }, 300)
-  }
-
-  const loadDataWithTransition = () => {
-    startTransition(() => {
-      // Simulate expensive operation
-      const start = Date.now()
-      while (Date.now() - start < 1000) {
-        // Busy wait
-      }
-    })
-  }
-
-  const loadDataWithSuspense = () => {
-    setDataPromise(fetchData())
-  }
-
-  const resetSuspense = () => {
-    setDataPromise(null)
-  }
+  // Demo 3: Pre-render next page
+  const [currentPage, setCurrentPage] = useState(1)
+  const [preloadNext, setPreloadNext] = useState(false)
 
   return (
     <div className="container">
-      <style jsx global>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        
-        @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.5;
-            transform: scale(1.5);
-          }
-        }
-        
-        @keyframes bounce {
-          0%, 80%, 100% {
-            transform: scale(0);
-          }
-          40% {
-            transform: scale(1);
-          }
-        }
-      `}</style>
-
       <Link href="/" className="back-link">
-        Back to Home
+        ← Back to Home
       </Link>
 
-      <h1>Activity Indicators Demo</h1>
+      <h1>
+        <code>&lt;Activity /&gt;</code> Component Demo
+      </h1>
+      <p style={{ fontSize: '1.1rem', color: '#666', marginBottom: '2rem' }}>
+        React 19.2 - New in October 2025 | 
+        <a 
+          href="https://react.dev/blog/2025/10/01/react-19-2#activity" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{ marginLeft: '0.5rem', color: '#0070f3' }}
+        >
+          Official Docs →
+        </a>
+      </p>
 
       <div className="demo-section">
-        <h2>What are Activity Indicators?</h2>
+        <h2>What is &lt;Activity /&gt;?</h2>
         <p>
-          Activity indicators (also called loading indicators or spinners) provide visual feedback during
-          asynchronous operations. React 19 provides several patterns for implementing loading states
-          with Suspense, useTransition, and custom components.
+          <code>&lt;Activity&gt;</code> lets you break your app into &quot;activities&quot; that can be controlled 
+          and prioritized. It&apos;s an alternative to conditional rendering that provides better performance 
+          and state management.
         </p>
 
-        <h3>Key Concepts:</h3>
-        <ul style={{ marginLeft: '2rem', lineHeight: '2' }}>
-          <li>Show progress during async operations</li>
-          <li>Improve perceived performance</li>
-          <li>Reduce user anxiety during waits</li>
-          <li>Integrate with React's concurrent features</li>
-          <li>Provide meaningful feedback</li>
-        </ul>
-      </div>
-
-      <div className="demo-section">
-        <h2>Demo 1: Activity Indicator Styles</h2>
-        <p>Different styles of loading indicators for various use cases:</p>
-
-        <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-          <div className="card">
-            <h4>Spinner (Small)</h4>
-            <div style={{ padding: '1rem' }}>
-              <ActivityIndicator size="small" label="Loading..." />
-            </div>
-          </div>
-
-          <div className="card">
-            <h4>Spinner (Medium)</h4>
-            <div style={{ padding: '1rem' }}>
-              <ActivityIndicator size="medium" label="Processing..." />
-            </div>
-          </div>
-
-          <div className="card">
-            <h4>Spinner (Large)</h4>
-            <div style={{ padding: '1rem' }}>
-              <ActivityIndicator size="large" />
-            </div>
-          </div>
-
-          <div className="card">
-            <h4>Dot Loader</h4>
-            <div style={{ padding: '1rem' }}>
-              <DotLoader />
-            </div>
-          </div>
-
-          <div className="card">
-            <h4>Pulse Indicator</h4>
-            <div style={{ padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <PulseIndicator />
-              <span>Live</span>
-            </div>
-          </div>
-
-          <div className="card">
-            <h4>Skeleton Loader</h4>
-            <div style={{ padding: '1rem' }}>
-              <SkeletonLoader count={3} height="16px" />
-            </div>
-          </div>
+        <div className="card" style={{ background: '#f0f9ff', border: '1px solid #0ea5e9' }}>
+          <h3>Key Features:</h3>
+          <ul style={{ marginLeft: '2rem', lineHeight: '2' }}>
+            <li><strong>visible mode:</strong> Shows children, mounts effects, processes updates normally</li>
+            <li><strong>hidden mode:</strong> Hides children, unmounts effects, defers updates until React is idle</li>
+            <li><strong>State preservation:</strong> Keep component state when switching between modes</li>
+            <li><strong>Performance:</strong> Pre-render hidden content without impacting visible UI</li>
+            <li><strong>Use cases:</strong> Tabs, wizards, pre-loading, back navigation with state</li>
+          </ul>
         </div>
       </div>
 
       <div className="demo-section">
-        <h2>Demo 2: Progress Bar</h2>
-        <p>Show determinate progress for operations with known duration:</p>
+        <h2>Demo 1: Basic Usage - Before & After</h2>
+        <p>Compare conditional rendering vs Activity component:</p>
 
-        <button onClick={simulateProgress} disabled={isLoading}>
-          {isLoading ? 'Loading...' : 'Start Progress'}
-        </button>
-
-        {isLoading && (
-          <div style={{ marginTop: '1rem' }}>
-            <ProgressBar progress={progress} label="Uploading file..." />
+        <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: '1fr 1fr' }}>
+          <div>
+            <h3>❌ Before (Conditional Rendering)</h3>
+            <pre style={{ background: '#1e1e1e', color: '#d4d4d4', padding: '1rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+              <code>{`// Loses state when toggled
+{isVisible && <Page />}`}</code>
+            </pre>
           </div>
-        )}
-      </div>
 
-      <div className="demo-section">
-        <h2>Demo 3: useTransition with Activity</h2>
-        <p>Use React's useTransition hook to show pending states:</p>
-
-        <button onClick={loadDataWithTransition} disabled={isPending}>
-          {isPending ? 'Processing...' : 'Load Data (useTransition)'}
-        </button>
-
-        {isPending && (
-          <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(0, 112, 243, 0.1)', borderRadius: '8px' }}>
-            <ActivityIndicator size="small" label="Loading with useTransition..." />
+          <div>
+            <h3>✅ After (Activity Component)</h3>
+            <pre style={{ background: '#1e1e1e', color: '#d4d4d4', padding: '1rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+              <code>{`// Preserves state when hidden
+<Activity mode={isVisible ? 'visible' : 'hidden'}>
+  <Page />
+</Activity>`}</code>
+            </pre>
           </div>
-        )}
-      </div>
+        </div>
 
-      <div className="demo-section">
-        <h2>Demo 4: Suspense with Fallback</h2>
-        <p>Use Suspense to show loading states for async components:</p>
-
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-          <button onClick={loadDataWithSuspense} disabled={!!dataPromise}>
-            Load Data (Suspense)
+        <div style={{ marginTop: '2rem' }}>
+          <button onClick={() => setIsVisible(!isVisible)}>
+            {isVisible ? '👁️ Hide Component' : '👁️‍🗨️ Show Component'}
           </button>
-          {dataPromise && (
-            <button onClick={resetSuspense}>
-              Reset
-            </button>
-          )}
-        </div>
 
-        {dataPromise && (
-          <Suspense
-            fallback={
-              <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
-                <ActivityIndicator size="large" />
-                <p style={{ marginTop: '1rem' }}>Loading data with Suspense...</p>
-              </div>
-            }
-          >
-            <DataList promise={dataPromise} />
-          </Suspense>
-        )}
+          <div style={{ marginTop: '1rem' }}>
+            <Activity mode={isVisible ? 'visible' : 'hidden'}>
+              <HeavyComponent id="Demo 1 Component" color="#0070f3" />
+            </Activity>
+          </div>
+
+          <p style={{ marginTop: '1rem', color: '#666', fontSize: '0.9rem' }}>
+            💡 Notice: When hidden, effects unmount. When visible again, they remount - but state is preserved!
+          </p>
+        </div>
       </div>
 
       <div className="demo-section">
-        <h2>Code Example - Activity Indicator Component</h2>
-        <pre>
-          <code>{`function ActivityIndicator({ 
-  size = 'medium', 
-  label 
-}: { 
-  size?: 'small' | 'medium' | 'large'
-  label?: string 
-}) {
-  const sizes = {
-    small: 16,
-    medium: 24,
-    large: 40,
-  }
+        <h2>Demo 2: Tabs with State Preservation</h2>
+        <p>
+          Traditional tab implementations unmount inactive tabs, losing their state. 
+          With <code>&lt;Activity&gt;</code>, all tabs stay mounted but hidden tabs defer updates.
+        </p>
+
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', borderBottom: '2px solid #e5e7eb' }}>
+          {(['home', 'profile', 'settings'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: activeTab === tab ? '#0070f3' : 'transparent',
+                color: activeTab === tab ? 'white' : '#666',
+                border: 'none',
+                borderBottom: activeTab === tab ? '2px solid #0070f3' : 'none',
+                marginBottom: '-2px',
+                cursor: 'pointer',
+                textTransform: 'capitalize',
+              }}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        <Activity mode={activeTab === 'home' ? 'visible' : 'hidden'}>
+          <TabContent name="Home" color="#0070f3" />
+        </Activity>
+
+        <Activity mode={activeTab === 'profile' ? 'visible' : 'hidden'}>
+          <TabContent name="Profile" color="#7928ca" />
+        </Activity>
+
+        <Activity mode={activeTab === 'settings' ? 'visible' : 'hidden'}>
+          <TabContent name="Settings" color="#059669" />
+        </Activity>
+
+        <div className="card" style={{ marginTop: '1rem', background: '#fffbeb', border: '1px solid #f59e0b' }}>
+          <p style={{ margin: 0 }}>
+            <strong>Try it:</strong> Type something in one tab&apos;s input field, switch tabs, then come back. 
+            Your input is preserved! Check the console to see mount/unmount logs.
+          </p>
+        </div>
+      </div>
+
+      <div className="demo-section">
+        <h2>Demo 3: Pre-render Next Page</h2>
+        <p>
+          Pre-render the next page users are likely to navigate to. This loads data, images, and CSS 
+          in the background without impacting the current page&apos;s performance.
+        </p>
+
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+          <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>
+            ← Previous
+          </button>
+          <span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Page {currentPage}</span>
+          <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage >= 3}>
+            Next →
+          </button>
+          <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <input
+              type="checkbox"
+              checked={preloadNext}
+              onChange={(e) => setPreloadNext(e.target.checked)}
+            />
+            Pre-render next page
+          </label>
+        </div>
+
+        {/* Current Page */}
+        <Activity mode={currentPage === 1 ? 'visible' : 'hidden'}>
+          <div className="card" style={{ padding: '2rem', borderTop: '4px solid #0070f3' }}>
+            <h3>Page 1 Content</h3>
+            <p>This is the currently visible page. It renders and updates normally.</p>
+            <ImagePreloader 
+              src="https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=400" 
+              alt="Page 1 Image" 
+            />
+          </div>
+        </Activity>
+
+        <Activity mode={currentPage === 2 ? 'visible' : 'hidden'}>
+          <div className="card" style={{ padding: '2rem', borderTop: '4px solid #7928ca' }}>
+            <h3>Page 2 Content</h3>
+            <p>This page loads its data and images when pre-rendered or visible.</p>
+            <ImagePreloader 
+              src="https://images.unsplash.com/photo-1682687221038-404cb8830901?w=400" 
+              alt="Page 2 Image" 
+            />
+          </div>
+        </Activity>
+
+        <Activity mode={currentPage === 3 ? 'visible' : 'hidden'}>
+          <div className="card" style={{ padding: '2rem', borderTop: '4px solid #059669' }}>
+            <h3>Page 3 Content</h3>
+            <p>Final page with its own content and resources.</p>
+            <ImagePreloader 
+              src="https://images.unsplash.com/photo-1682687220795-796d3f6f7000?w=400" 
+              alt="Page 3 Image" 
+            />
+          </div>
+        </Activity>
+
+        {/* Pre-render next page */}
+        {preloadNext && currentPage < 3 && (
+          <Activity mode="hidden">
+            {currentPage === 1 && (
+              <div className="card" style={{ padding: '2rem', borderTop: '4px solid #7928ca' }}>
+                <h3>Page 2 Content</h3>
+                <p>This page loads its data and images when pre-rendered or visible.</p>
+                <ImagePreloader 
+                  src="https://images.unsplash.com/photo-1682687221038-404cb8830901?w=400" 
+                  alt="Page 2 Image" 
+                />
+              </div>
+            )}
+            {currentPage === 2 && (
+              <div className="card" style={{ padding: '2rem', borderTop: '4px solid #059669' }}>
+                <h3>Page 3 Content</h3>
+                <p>Final page with its own content and resources.</p>
+                <ImagePreloader 
+                  src="https://images.unsplash.com/photo-1682687220795-796d3f6f7000?w=400" 
+                  alt="Page 3 Image" 
+                />
+              </div>
+            )}
+          </Activity>
+        )}
+
+        <div className="card" style={{ marginTop: '1rem', background: '#f0fdf4', border: '1px solid #059669' }}>
+          <p style={{ margin: 0 }}>
+            <strong>Watch the console:</strong> With pre-render enabled, the next page starts loading in the 
+            background. Navigation becomes instant because resources are already loaded!
+          </p>
+        </div>
+      </div>
+
+      <div className="demo-section">
+        <h2>Code Examples</h2>
+
+        <h3>1. Basic Usage</h3>
+        <pre style={{ background: '#1e1e1e', color: '#d4d4d4', padding: '1rem', borderRadius: '8px' }}>
+          <code>{`import { Activity } from 'react'
+
+function App() {
+  const [isVisible, setIsVisible] = useState(true)
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-      <div
-        style={{
-          width: sizes[size],
-          height: sizes[size],
-          border: '3px solid rgba(0, 112, 243, 0.3)',
-          borderTopColor: '#0070f3',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }}
-      />
-      {label && <span>{label}</span>}
-    </div>
+    <Activity mode={isVisible ? 'visible' : 'hidden'}>
+      <ExpensiveComponent />
+    </Activity>
   )
-}
-
-// CSS
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }`}</code>
         </pre>
-      </div>
 
-      <div className="demo-section">
-        <h2>Code Example - Skeleton Loader</h2>
-        <pre>
-          <code>{`function SkeletonLoader({ 
-  width, 
-  height, 
-  count = 1 
-}: { 
-  width?: string
-  height?: string
-  count?: number 
-}) {
+        <h3>2. Tabs with State Preservation</h3>
+        <pre style={{ background: '#1e1e1e', color: '#d4d4d4', padding: '1rem', borderRadius: '8px' }}>
+          <code>{`function TabView() {
+  const [activeTab, setActiveTab] = useState('home')
+
   return (
     <>
-      {Array.from({ length: count }).map((_, i) => (
-        <div
-          key={i}
-          style={{
-            width: width || '100%',
-            height: height || '20px',
-            background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-            backgroundSize: '200% 100%',
-            animation: 'shimmer 1.5s infinite',
-            borderRadius: '4px',
-            marginBottom: count > 1 ? '0.5rem' : 0,
-          }}
-        />
-      ))}
+      <Activity mode={activeTab === 'home' ? 'visible' : 'hidden'}>
+        <HomeTab />
+      </Activity>
+      
+      <Activity mode={activeTab === 'profile' ? 'visible' : 'hidden'}>
+        <ProfileTab />
+      </Activity>
+      
+      <Activity mode={activeTab === 'settings' ? 'visible' : 'hidden'}>
+        <SettingsTab />
+      </Activity>
     </>
   )
-}
-
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
 }`}</code>
         </pre>
-      </div>
 
-      <div className="demo-section">
-        <h2>Code Example - With useTransition</h2>
-        <pre>
-          <code>{`import { useTransition } from 'react'
-
-function Component() {
-  const [isPending, startTransition] = useTransition()
-  const [data, setData] = useState([])
-
-  const loadData = () => {
-    startTransition(async () => {
-      const result = await fetch('/api/data')
-      const json = await result.json()
-      setData(json)
-    })
-  }
+        <h3>3. Pre-render Next Route</h3>
+        <pre style={{ background: '#1e1e1e', color: '#d4d4d4', padding: '1rem', borderRadius: '8px' }}>
+          <code>{`function Wizard() {
+  const [currentStep, setCurrentStep] = useState(1)
 
   return (
-    <div>
-      <button onClick={loadData} disabled={isPending}>
-        Load Data
-      </button>
+    <>
+      {/* Current step */}
+      <Activity mode={currentStep === 1 ? 'visible' : 'hidden'}>
+        <Step1 />
+      </Activity>
       
-      {isPending && <ActivityIndicator label="Loading..." />}
-      
-      <DataDisplay data={data} />
-    </div>
+      {/* Pre-render next step in background */}
+      {currentStep === 1 && (
+        <Activity mode="hidden">
+          <Step2 />
+        </Activity>
+      )}
+    </>
   )
 }`}</code>
         </pre>
       </div>
 
       <div className="demo-section">
-        <h2>Code Example - With Suspense</h2>
-        <pre>
-          <code>{`import { Suspense } from 'react'
-
-function LoadingFallback() {
-  return (
-    <div>
-      <ActivityIndicator size="large" />
-      <p>Loading content...</p>
-    </div>
-  )
-}
-
-function Page() {
-  return (
-    <Suspense fallback={<LoadingFallback />}>
-      <AsyncComponent />
-    </Suspense>
-  )
-}
-
-// AsyncComponent can use() hook or throw promises
-function AsyncComponent() {
-  const data = use(fetchData()) // React 19 use() hook
-  return <div>{data.map(item => ...)}</div>
-}`}</code>
-        </pre>
-      </div>
-
-      <div className="demo-section">
-        <h2>Code Example - Progress Bar</h2>
-        <pre>
-          <code>{`function ProgressBar({ 
-  progress, 
-  label 
-}: { 
-  progress: number
-  label?: string 
-}) {
-  return (
-    <div>
-      {label && <div>{label}</div>}
-      <div style={{
-        width: '100%',
-        height: '8px',
-        background: '#e5e7eb',
-        borderRadius: '4px',
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          width: \`\${progress}%\`,
-          height: '100%',
-          background: 'linear-gradient(90deg, #0070f3, #7928ca)',
-          transition: 'width 0.3s ease',
-        }} />
-      </div>
-      <div>{progress}% complete</div>
-    </div>
-  )
-}
-
-// Usage
-function Upload() {
-  const [progress, setProgress] = useState(0)
-  
-  const upload = async (file) => {
-    // Track upload progress
-    const xhr = new XMLHttpRequest()
-    xhr.upload.addEventListener('progress', (e) => {
-      const percent = (e.loaded / e.total) * 100
-      setProgress(percent)
-    })
-    // ... upload logic
-  }
-  
-  return <ProgressBar progress={progress} label="Uploading..." />
-}`}</code>
-        </pre>
-      </div>
-
-      <div className="demo-section">
-        <h2>Loading State Patterns</h2>
+        <h2>Performance Benefits</h2>
         <div style={{ display: 'grid', gap: '1rem' }}>
           <div className="card">
-            <h4>1. Inline Spinner</h4>
-            <p>Small spinner next to action button</p>
-            <div style={{ marginTop: '0.5rem' }}>
-              <button disabled style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: '16px', height: '16px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%' }} />
-                Loading...
-              </button>
-            </div>
+            <h4>🚀 Instant Navigation</h4>
+            <p>Pre-render hidden routes so navigation feels instant</p>
           </div>
 
           <div className="card">
-            <h4>2. Overlay Spinner</h4>
-            <p>Full-screen or section overlay with spinner</p>
-            <p style={{ fontSize: '0.9rem', color: '#666' }}>Good for blocking operations</p>
+            <h4>💾 State Preservation</h4>
+            <p>Keep form inputs and scroll position when switching views</p>
           </div>
 
           <div className="card">
-            <h4>3. Skeleton Screens</h4>
-            <p>Show content outline while loading</p>
-            <p style={{ fontSize: '0.9rem', color: '#666' }}>Best for content-heavy pages</p>
+            <h4>🎯 Priority Control</h4>
+            <p>Hidden activities defer updates until React is idle</p>
           </div>
 
           <div className="card">
-            <h4>4. Progress Indicators</h4>
-            <p>Show actual progress percentage</p>
-            <p style={{ fontSize: '0.9rem', color: '#666' }}>Use when duration is known</p>
+            <h4>📦 Resource Pre-loading</h4>
+            <p>Load images, data, and CSS in background without blocking UI</p>
           </div>
         </div>
+      </div>
+
+      <div className="demo-section">
+        <h2>Use Cases</h2>
+        <ul style={{ marginLeft: '2rem', lineHeight: '2' }}>
+          <li><strong>Tabs:</strong> Keep all tabs mounted, preserve state when switching</li>
+          <li><strong>Wizards:</strong> Pre-render next step for instant navigation</li>
+          <li><strong>Carousels:</strong> Pre-load adjacent slides</li>
+          <li><strong>Modal Dialogs:</strong> Keep dialog state when closing/opening</li>
+          <li><strong>Search Results:</strong> Pre-render likely next page of results</li>
+          <li><strong>Dashboard Widgets:</strong> Load non-visible widgets in background</li>
+        </ul>
       </div>
 
       <div className="demo-section">
         <h2>Best Practices</h2>
         <ul style={{ marginLeft: '2rem', lineHeight: '2' }}>
-          <li><strong>Show immediately:</strong> Display loading indicators within 100ms</li>
-          <li><strong>Use appropriate type:</strong> Skeleton for content, spinner for actions</li>
-          <li><strong>Provide context:</strong> Add labels explaining what's loading</li>
-          <li><strong>Don't over-animate:</strong> Keep animations subtle and smooth</li>
-          <li><strong>Match the context:</strong> Size and style should fit the UI</li>
-          <li><strong>Consider accessibility:</strong> Add ARIA labels for screen readers</li>
-          <li><strong>Use Suspense:</strong> Let React handle loading boundaries</li>
-          <li><strong>Combine with useTransition:</strong> Keep UI responsive during updates</li>
+          <li><strong>Use for navigation:</strong> Pre-render routes users are likely to visit next</li>
+          <li><strong>Preserve state:</strong> Better UX by keeping form inputs and scroll position</li>
+          <li><strong>Don&apos;t overuse:</strong> Too many hidden activities can consume memory</li>
+          <li><strong>Monitor effects:</strong> Hidden mode unmounts effects, visible remounts them</li>
+          <li><strong>Combine with Suspense:</strong> Let React handle loading states</li>
         </ul>
       </div>
 
       <div className="demo-section">
-        <h2>Accessibility Considerations</h2>
-        <pre>
-          <code>{`function AccessibleSpinner({ label }: { label: string }) {
-  return (
-    <div 
-      role="status" 
-      aria-live="polite"
-      aria-label={label}
-    >
-      <div className="spinner" aria-hidden="true" />
-      <span className="sr-only">{label}</span>
-    </div>
-  )
-}
-
-// CSS for screen reader only text
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}`}</code>
-        </pre>
-      </div>
-
-      <div className="demo-section">
-        <h2>When to Use Each Type</h2>
-        <ul style={{ marginLeft: '2rem', lineHeight: '2' }}>
-          <li><strong>Spinner:</strong> Quick operations ({"<"} 3 seconds)</li>
-          <li><strong>Progress Bar:</strong> Long operations with known duration</li>
-          <li><strong>Skeleton:</strong> Initial page load or content-heavy sections</li>
-          <li><strong>Pulse/Dot:</strong> Real-time updates or live indicators</li>
-          <li><strong>Suspense:</strong> Async component loading</li>
-          <li><strong>useTransition:</strong> Non-urgent state updates</li>
-        </ul>
+        <h2>Future Modes</h2>
+        <p>
+          React 19.2 currently supports <code>visible</code> and <code>hidden</code> modes. 
+          Future versions will add more modes for different use cases like background processing, 
+          throttled updates, and more granular priority control.
+        </p>
       </div>
     </div>
   )

@@ -160,6 +160,46 @@ function SearchBox() {
 
 ---
 
+### useEffectEvent (Experimental)
+Extract non-reactive logic from Effects to read latest values without re-triggering.
+
+```tsx
+import { useEffect, useEffectEvent } from 'react'
+
+function Page({ url }) {
+  const { items } = useContext(ShoppingCartContext)
+  const numberOfItems = items.length
+
+  // Extract non-reactive logic into an Effect Event
+  const onVisit = useEffectEvent((visitedUrl) => {
+    logVisit(visitedUrl, numberOfItems)  // Always reads latest numberOfItems
+  })
+
+  useEffect(() => {
+    onVisit(url)
+  }, [url])  // Only re-runs when url changes, not numberOfItems!
+
+  // ...
+}
+```
+
+**Key Points:**
+- Read latest props/state without re-triggering the Effect
+- Avoid stale closures in Effects
+- Effect dependency array only includes truly reactive values
+- Only call inside Effects (useEffect, useLayoutEffect, useInsertionEffect)
+- Don't use as a dependency shortcut - use for truly non-reactive logic
+
+**Common Use Cases:**
+- Analytics/logging with current state
+- WebSocket callbacks needing fresh values
+- Notifications with current settings
+- Event handlers in Effects that need latest props
+
+**Availability:** Experimental feature - not yet in stable React release
+
+---
+
 ## 🎬 Server Actions
 
 Functions that run on the server, callable from client or server components.
@@ -433,70 +473,74 @@ function Component() {
 
 ---
 
-## ⏳ Activity Indicators
+## 🎯 &lt;Activity /&gt; Component
 
-Loading states and progress feedback components.
+**React 19.2** - Controlled rendering with visible/hidden modes.
+
+The Activity component lets you break your app into "activities" that can be controlled and prioritized. It's an alternative to conditional rendering that provides better performance and state management.
 
 ```tsx
-// Spinner
-function ActivityIndicator({ size, label }: { 
-  size?: 'small' | 'medium' | 'large'
-  label?: string 
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-      <div className="spinner" />
-      {label && <span>{label}</span>}
-    </div>
-  )
-}
+import { Activity } from 'react'
 
-// Progress Bar
-function ProgressBar({ progress, label }: { 
-  progress: number
-  label?: string 
-}) {
-  return (
-    <div>
-      {label && <div>{label}</div>}
-      <div className="progress-track">
-        <div 
-          className="progress-bar"
-          style={{ width: \`\${progress}%\` }}
-        />
-      </div>
-      <div>{progress}% complete</div>
-    </div>
-  )
-}
+// Before: Loses state when toggled
+{isVisible && <Page />}
 
-// Skeleton Loader
-function SkeletonLoader({ count = 1 }: { count?: number }) {
+// After: Preserves state when hidden
+<Activity mode={isVisible ? 'visible' : 'hidden'}>
+  <Page />
+</Activity>
+
+// Tabs with state preservation
+function TabView() {
+  const [activeTab, setActiveTab] = useState('home')
+
   return (
     <>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="skeleton" />
-      ))}
+      <Activity mode={activeTab === 'home' ? 'visible' : 'hidden'}>
+        <HomeTab />
+      </Activity>
+      
+      <Activity mode={activeTab === 'profile' ? 'visible' : 'hidden'}>
+        <ProfileTab />
+      </Activity>
     </>
   )
 }
 
-// With Suspense
-<Suspense fallback={<ActivityIndicator size="large" />}>
-  <AsyncComponent />
-</Suspense>
+// Pre-render next page for instant navigation
+function Wizard() {
+  const [currentStep, setCurrentStep] = useState(1)
 
-// With useTransition
-const [isPending, startTransition] = useTransition()
-{isPending && <ActivityIndicator label="Loading..." />}
+  return (
+    <>
+      {/* Current step */}
+      <Activity mode={currentStep === 1 ? 'visible' : 'hidden'}>
+        <Step1 />
+      </Activity>
+      
+      {/* Pre-render next step in background */}
+      {currentStep === 1 && (
+        <Activity mode="hidden">
+          <Step2 />
+        </Activity>
+      )}
+    </>
+  )
+}
 ```
 
-**Key Points:**
-- Multiple indicator types for different use cases
-- Integrates with Suspense and useTransition
-- Accessible with proper ARIA attributes
-- Skeleton loaders for content-heavy pages
-- Progress bars for determinate operations
+**Key Features:**
+- **visible mode:** Shows children, mounts effects, processes updates normally
+- **hidden mode:** Hides children, unmounts effects, defers updates until React is idle
+- **State preservation:** Keep component state when switching between modes
+- **Performance:** Pre-render hidden content without impacting visible UI
+- **Use cases:** Tabs, wizards, pre-loading, back navigation with state
+
+**Benefits:**
+- ⚡ Instant navigation by pre-rendering likely next routes
+- 💾 Preserve form inputs and scroll position when switching views
+- 🎯 Hidden activities defer updates until React is idle
+- 📦 Load images, data, and CSS in background without blocking UI
 
 ---
 
@@ -555,6 +599,73 @@ module.exports = {
 - Smaller bundle sizes
 - Better performance by default
 - Zero runtime cost
+
+---
+
+## 🚀 Partial Pre-rendering (React 19.2)
+
+Pre-render static parts of your app and resume rendering dynamic parts later.
+
+### Pre-render Phase (Build Time)
+```tsx
+import { prerender } from 'react-dom/static'
+
+const controller = new AbortController()
+
+const { prelude, postponed } = await prerender(<App />, {
+  signal: controller.signal,
+})
+
+// Save the postponed state for later
+await savePostponedState(postponed)
+
+// Send prelude to CDN
+```
+
+### Resume Phase (Runtime)
+```tsx
+import { resume } from 'react-dom/server'
+
+// Get the postponed state from Phase 1
+const postponed = await getPostponedState(request)
+
+// Resume rendering to fill in dynamic content
+const resumeStream = await resume(<App />, postponed)
+
+// Send stream to client
+```
+
+### Resume and Pre-render for SSG
+```tsx
+import { resumeAndPrerender } from 'react-dom/static'
+
+const postponedState = await getPostponedState(request)
+
+const { prelude } = await resumeAndPrerender(
+  <App />, 
+  postponedState
+)
+
+// Send complete HTML to CDN
+```
+
+**Key Points:**
+- Static shell served instantly from CDN
+- Dynamic content loaded progressively
+- Better Core Web Vitals (LCP, FCP)
+- Reduced server load
+- Works with Suspense boundaries
+- Supports View Transitions for smooth reveals
+
+**Use Cases:**
+- E-commerce product pages (pre-render layout, resume for pricing/inventory)
+- News/blog sites (pre-render content, resume for comments/personalization)
+- Dashboards (pre-render shell, resume for real-time data)
+- Profile pages (pre-render layout, resume for user data)
+
+**Node.js APIs:**
+- `resumeToPipeableStream()` - Resume to Node.js stream
+- `resumeAndPrerenderToNodeStream()` - Resume to Node.js stream for SSG
 
 ---
 
